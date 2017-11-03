@@ -14,7 +14,7 @@ The grammar was successfully tested on all syntactical problems of the TPTP.
     
 * test_cases
 
-    Contains additional test cases for (unofficial) non-classical logics
+    Contains additional test cases for (unofficial) non-classical logics.
     
 
 
