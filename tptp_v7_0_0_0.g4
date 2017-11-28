@@ -1,6 +1,11 @@
 // created by Alexander Steen (a.steen@fu-berlin.de)
 // and Tobias Gleißner (tobias.gleissner@fu-berlin.de)
 
+// #INFO is about sections or where the parse tree has been flattened according to ANTLR idiomatics
+// #ALT alternative grammar formulation for some parts
+// #RES where no further restrictions are applied e.g. in the case of defined_functor
+// any dollar word is allowed instead of only the predefined functors
+
 grammar tptp_v7_0_0_0;
 
 // #INFO HERE COME THE LEXER RULES
@@ -368,12 +373,12 @@ thf_unitary_formula     : thf_quantified_formula | thf_unary_formula
 //<thf_variable>         ::= <thf_typed_variable> | <variable>
 //<thf_typed_variable>   ::= <variable> : <thf_top_level_type>
 thf_quantified_formula  : thf_quantification thf_unitary_formula;
-// #INFO flattened
-thf_quantification      : thf_quantifier '[' thf_variable (',' thf_variable)* ']' ':';
-// #ALT
-// thf_variable : variable (':' thf_top_level_type)?;
+thf_quantification      : thf_quantifier '[' thf_variable_list ']' ':';
+thf_variable_list       : thf_variable (',' thf_variable)*; // #INFO thf_variable_list flattened
+//thf_variable_list       : thf_variable | thf_variable ',' thf_variable_list; // #ALT flattened to thf_variable_list
 thf_variable            : thf_typed_variable | variable;
 thf_typed_variable      : variable ':' thf_top_level_type;
+//thf_variable            : variable (':' thf_top_level_type)?; // #ALT to thf_variable (more condensed)
 
 //%----Unary connectives bind more tightly than binary. The negated formula
 //%----must be ()ed because a ~ is also a term.
@@ -394,10 +399,11 @@ thf_function            : atom | functor '(' thf_arguments ')'
                         | defined_functor '(' thf_arguments ')'
                         | system_functor '(' thf_arguments ')';
 
-// #ALT
+// #ALT to thf_function
 // Splitted rules of <thf_function> to avoid using <atom> here:
 // We use conditional arguments, i.e.
 // the atoms are included (= thf_arguments is empty).
+//thf_function: thf_plain_term | thf_defined_term | thf_system_term;
 //thf_plain_term : functor  ('(' thf_arguments ')')?;
 //thf_defined_term : defined_functor ('(' thf_arguments ')')?;
 //thf_system_term : system_functor ('(' thf_arguments ')')?;
@@ -621,12 +627,11 @@ tff_unitary_formula     : tff_quantified_formula | tff_unary_formula
 //                           <fof_infix_unary>
 //<tff_atomic_formula>   ::= <fof_atomic_formula>
 tff_quantified_formula  : fof_quantifier '[' tff_variable_list ']' ':' tff_unitary_formula;
-// #INFO flattened
-tff_variable_list       : tff_variable (',' tff_variable)*;
+tff_variable_list       : tff_variable (',' tff_variable)*; // #INFO tff_variable_list flattened
+//tff_variable_list       : tff_variable | tff_variable ',' tff_variable_list; // # ALT to tff_variable_list
 tff_variable            : tff_typed_variable | variable;
+// tff_variable : variable (':' tff_atomic_type)?; // #ALT to tff_variable (more condensed)
 tff_typed_variable      : variable ':' tff_atomic_type;
-// #ALT
-// tff_variable : variable (':' tff_atomic_type)?;
 tff_unary_formula       : unary_connective tff_unitary_formula
                         | fof_infix_unary;
 tff_atomic_formula      : fof_atomic_formula;
@@ -708,8 +713,7 @@ tff_monotype            : tff_atomic_type | '(' tff_mapping_type ')';
 tff_unitary_type        : tff_atomic_type | '(' tff_xprod_type ')';
 tff_atomic_type         : type_constant | defined_type
                         | type_functor '(' tff_type_arguments ')' | variable;
-// #ALT
-// tff_atomic_type : defined_type | type_functor ('(' tff_type_arguments ')')? | variable;
+// tff_atomic_type : defined_type | type_functor ('(' tff_type_arguments ')')? | variable; // #ALT to tff_atomic_type (more condensed)
 tff_type_arguments      : tff_atomic_type (',' tff_atomic_type)*;
 tff_mapping_type        : tff_unitary_type Arrow tff_atomic_type;
 tff_xprod_type          : tff_unitary_type Star tff_atomic_type
@@ -814,7 +818,7 @@ fof_defined_plain_term  : defined_constant
 fof_system_term         : system_constant
                         | system_functor '(' fof_arguments ')';
 
-// #ALT
+// #ALT alternatives for these terms
 //fof_plain_term: functor ('(' fof_arguments ')')?; // contracted for easier handling
 //fof_defined_term: defined_functor ('(' fof_arguments ')')?; // contracted for easier handling
 //fof_system_term: system_functor ('(' fof_arguments ')')?; // contracted for easier handling
@@ -1030,8 +1034,8 @@ source                  : dag_source | internal_source
                         | external_source
                         | Lower_word // #RES | 'unknown'
                         | '[' sources ']';
-// #INFO flattened
-sources                 : source ( ',' source )*;
+sources                 : source ( ',' source )*; // #INFO flattened
+//sources                 : source | source ',' sources; // #ALT to flattened sources
 dag_source              : name | inference_record;
 
 //<inference_record>     :== inference(<inference_rule>,<useful_info>,
@@ -1054,6 +1058,7 @@ inference_rule          : atomic_word;
 //<intro_type>           :== definition | axiom_of_choice | tautology | assumption
 inference_parents       : '[]' | '[' parent_list ']';
 parent_list             : parent_info ( ',' parent_info )*; // #INFO flattened
+//parent_list             : parent_info | parent_info ',' parent_list; // #ALT to flattened parent_list
 parent_info             : source parent_details?; // #INFO ? because parent_details may be empty
 parent_details          : ':' general_list;
 internal_source         : 'introduced(' intro_type optional_info? ')';
@@ -1156,6 +1161,7 @@ assumptions_record      : 'assumptions(' '[' name_list ']' ')';
 refutation              : 'refutation(' file_source ')';
 new_symbol_record       : 'new_symbols(' atomic_word ',' '[' new_symbol_list ']' ')';
 new_symbol_list         : principal_symbol ( ',' principal_symbol )*; // #INFO flattened
+//new_symbol_list         : principal_symbol | principal_symbol ',' new_symbol_list; //#ALT to flattened new_symbol_list
 principal_symbol        : functor | variable;
 
 //%----Include directives
@@ -1192,6 +1198,7 @@ formula_data            : '$thf(' thf_formula ')' | '$tff(' tff_formula ')'
                         | '$fot(' fof_term ')';
 general_list            : '[]' | '[' general_terms ']';
 general_terms           : general_term (',' general_term)*; // #INFO flattened
+//general_terms           : general_term | general_term ',' general_terms; // #ALT to flattened general_terms
 
 //%----General purpose
 //<name>                 ::= <atomic_word> | <integer>
