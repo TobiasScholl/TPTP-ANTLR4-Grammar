@@ -1,3 +1,6 @@
+// created by Alexander Steen (a.steen@fu-berlin.de)
+// and Tobias Gleißner (tobias.gleissner@fu-berlin.de)
+
 grammar tptp_v7_0_0_0;
 
 // #INFO HERE COME THE LEXER RULES
